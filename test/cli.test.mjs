@@ -71,6 +71,26 @@ test('cli: a directory argument is walked for css files', () => {
   assert.match(stdout, /2 file\(s\)/);
 });
 
+test('cli: ** spans directories', () => {
+  const nested = run([`${FIXTURES}**/*.css`]);
+  const single = run([`${FIXTURES}*.css`]);
+
+  assert.match(nested.stdout, /2 file\(s\)/, '** must reach files in subdirectories');
+  assert.equal(nested.stdout, single.stdout);
+});
+
+test('cli: ? matches exactly one character', () => {
+  const { stdout } = run([`${FIXTURES}cle?n.css`]);
+
+  assert.match(stdout, /0 error\(s\)/);
+});
+
+test('cli: a glob matching nothing exits 2', () => {
+  const { code } = run([`${FIXTURES}*.scss`]);
+
+  assert.equal(code, 2);
+});
+
 test('cli: --ignore accepts a value starting with --', () => {
   const spaced = run([`${FIXTURES}clean.css`, '--ignore', '--brand']);
   const equals = run([`${FIXTURES}clean.css`, '--ignore=--brand']);

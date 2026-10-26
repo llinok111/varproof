@@ -158,10 +158,11 @@ the published package, not against a modified tree.
 | `lib/index.mjs` | 380 | rules, severities, verdicts, statistics |
 | `bin/varproof.mjs` | 290 | CLI, glob/dir expansion, text + JSON output |
 
-**Three defects found and fixed during development** (each first appeared as a
-failing test, not as a guess):
+**Five defects found and fixed during development.** Three appeared first as failing
+tests; two were found only by the CI matrix on Node 18/20 after everything passed
+locally on Node 22 — the same class of mistake that is easy to ship unnoticed.
 
-1. **Horrific complexity in cycle detection.** `findCycles` ran a BFS per node pair
+1. **Quadratic complexity in cycle detection.** `findCycles` ran a BFS per node pair
    inside each SCC — O(n²·(n+e)). A 5,000-node cycle made the test suite hang for
    **3 min 20 s**. Fixed by using the SCC itself as the member list; the same test now
    runs in **1.4 s**. Caught because the test used a deliberately deep synthetic graph.
@@ -172,17 +173,29 @@ failing test, not as a guess):
    `--`, and the argument parser rejected any value starting with `--`, so
    `varproof --ignore --brand` exited 2. Fixed with an explicit value-option set plus
    `--ignore=--brand` support; a genuinely missing value is still an error.
+4. **`fs.promises.glob` in the CLI — Node 22 only, while `engines` declares 18.17.**
+   Node 18/20 have no such export. Found by CI (`test (windows-latest, 18)` and `20`
+   failed while `22` passed). Replaced with a self-contained `*`/`?`/`**` expander.
+5. **`node --test "test/*.test.mjs"` — quoted-glob expansion arrived in Node 21/22.**
+   Node 18/20 treat the pattern as a literal path: `Could not find
+   'D:\a\varproof\varproof\test\*.test.mjs'`. Found by the same CI run. The test
+   script is now bare `node --test`, whose file discovery works on 18 through 22
+   (verified locally: 156 tests discovered).
 
-**Tests added** — 150 total, all passing.
+Defects 4 and 5 are now guarded by `test/package.test.mjs`, which fails if a
+Node-22-only API is reintroduced or the test script goes back to a shell-dependent
+glob. Both were invisible on the development machine.
+
+**Tests added** — 156 total, all passing.
 
 ```
 $ npm test
-# tests 150
-# pass 150
+# tests 156
+# pass 156
 # fail 0
 ```
 
-Per file: scanner 26, analyze 26, oracle 25, cli 21, collect 11, resolve 10,
+Per file: scanner 26, analyze 26, oracle 25, cli 24, collect 11, resolve 10,
 graph 9, directives 8, parser 7, package 7.
 
 **Build / regression.** No build step (plain ESM, Node 18.17+). The upstream defect
@@ -196,7 +209,8 @@ it must not break a green build when upstream fixes them.
 | Claim | Method | Result |
 |---|---|---|
 | Rules match a real engine | 24 declarations measured in Edge 156.0.4314.42 (`npm run oracle`), replayed offline by `test/oracle.test.mjs` | **24/24 agree** |
-| No regression | `npm test` on a clean copy with only the declared dependency installed | **150 pass, 0 fail** |
+| No regression | `npm test` on a clean copy with only the declared dependency installed | **156 pass, 0 fail** |
+| Runs on the declared engine floor | GitHub Actions matrix: ubuntu/windows/macos x Node 18, 20, 22 | see §Phase 5 note |
 | Starts independently | copy of `bin/ lib/ test/ scripts/ package.json` into an empty dir → `npm install` (3 packages) → `npm test` → CLI run | works |
 | Packages and runs as published | `npm pack` → install the tarball in an empty project → `npx varproof t.css` | exit 1, correct finding; tarball 23.8 kB, 14 files |
 | No false positives on real CSS | 36 third-party stylesheets (docsify, playwright-core, VS Code webview), 7,693 custom properties, 1,392 references | 36 errors / 59 warnings, **every one traced and confirmed a true positive** |

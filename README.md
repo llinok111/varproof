@@ -98,7 +98,7 @@ oracle comparison — runs with no browser at all.
 
 ```bash
 npm install --no-audit --no-fund     # one runtime dependency: css-tree
-npm test                             # 150 tests
+npm test                             # 156 tests
 node bin/varproof.mjs "src/**/*.css"
 ```
 
@@ -201,7 +201,7 @@ still reproduces, so the workaround cannot silently rot.
 | Claim | How it is checked | Result |
 |---|---|---|
 | Rules match a real engine | 24 declarations measured in Edge 156.0.4314.42, replayed by `test/oracle.test.mjs` | 24/24 agree |
-| No regression | `npm test` | 150 pass, 0 fail |
+| No regression | `npm test` | 156 pass, 0 fail |
 | Zero false positives on real CSS | 36 third-party stylesheets (docsify, playwright-core, VS Code webview), 7,693 custom properties, 1,392 references | 0 false positives found by manual review |
 | Parser workaround is effective | `npm run bench`, medians of 5×2000 parses | 642x → 1.7–2.5x of baseline |
 | Upstream defects are real | `npm run repro` | both reproduce |

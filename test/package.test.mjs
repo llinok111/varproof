@@ -65,6 +65,58 @@ test('package: no source file imports a private css-tree path', async () => {
   }
 });
 
+/**
+ * The declared engine floor is Node 18.17, so no module may use an API that only
+ * exists in a later release. Two such bugs already shipped into CI:
+ * `fs.promises.glob` (Node 22) in the CLI, and a quoted glob argument to
+ * `node --test` (glob expansion arrived in Node 21/22). Both passed locally on
+ * Node 22 and failed on 18/20, so they are guarded by name here.
+ */
+test('package: no Node 22+ only API is used anywhere', async () => {
+  const forbidden = [
+    'fs/promises\'.*glob', // fs.promises.glob  -> Node 22
+    'import\\.meta\\.dirname', // Node 20.11
+    'Object\\.groupBy', // Node 21
+    'Array\\.prototype\\.toSorted', // Node 20
+    'structuredClone' // Node 17 (fine) but not in 18.0 typings
+  ];
+  const files = [
+    'bin/varproof.mjs',
+    'lib/parser.mjs',
+    'lib/collect.mjs',
+    'lib/resolve.mjs',
+    'lib/graph.mjs',
+    'lib/grammar.mjs',
+    'lib/scanner.mjs',
+    'lib/suggest.mjs',
+    'lib/directives.mjs',
+    'lib/index.mjs'
+  ];
+
+  for (const file of files) {
+    const text = await readFile(new URL(`../${file}`, import.meta.url), 'utf8');
+    const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+
+    for (const pattern of forbidden) {
+      assert.equal(
+        new RegExp(`\\b${pattern}`).test(code),
+        false,
+        `${file} appears to use a Node-22-only API matching /${pattern}/`
+      );
+    }
+  }
+});
+
+test('package: the test script does not rely on shell glob expansion', () => {
+  // Node 18/20 do not expand a quoted glob for `node --test`, and cmd/PowerShell
+  // do not expand it either. Bare discovery works everywhere.
+  assert.equal(pkg.scripts.test, 'node --test');
+});
+
+test('package: declared engines matches what CI verifies', () => {
+  assert.match(pkg.engines.node, /18/);
+});
+
 test('package: the analyzer does not mutate the shared css-tree singleton', () => {
   // Two independent runs must not influence each other through shared state.
   const first = analyzeSources([{ path: 'a.css', text: '.a{width:var(--nope)}' }]);

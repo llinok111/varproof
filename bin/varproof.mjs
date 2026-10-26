@@ -6,9 +6,14 @@
  *   0 no errors (warnings allowed)
  *   1 at least one error
  *   2 usage / IO problem, nothing analyzed
+ *
+ * Portability note: globbing is implemented here rather than with
+ * `fs.promises.glob`, which only exists from Node 22 while this package declares
+ * Node >= 18.17. Node 18/20 also cannot expand a quoted pattern for `node --test`,
+ * so the test script uses bare discovery. Both were caught by the CI matrix.
  */
 
-import { readFile, readdir, stat, glob } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -151,10 +156,8 @@ async function loadSources(patterns) {
     }
 
     if (looksLikeGlob(pattern)) {
-      for await (const file of glob(pattern)) {
-        if (file.endsWith('.css')) {
-          files.add(file);
-        }
+      for await (const file of expandGlob(pattern)) {
+        files.add(file);
       }
       continue;
     }
@@ -193,6 +196,83 @@ async function loadSources(patterns) {
 
 /** Recursive .css discovery, skipping the usual build/vendor directories. */
 async function* walkCss(root) {
+  for await (const file of walkAll(root)) {
+    if (file.endsWith('.css')) {
+      yield file;
+    }
+  }
+}
+
+function looksLikeGlob(pattern) {
+  return /[*?]/.test(pattern);
+}
+
+/**
+ * Expand `*`, `?` and `**` without depending on `fs.promises.glob` (Node 22+).
+ *
+ * The pattern is split at the first segment containing a metacharacter; that
+ * prefix becomes the walk root and the remainder is compiled into a regex applied
+ * to each path relative to the root. Brackets are treated literally.
+ */
+async function* expandGlob(pattern) {
+  const magic = /[*?]/;
+  const segments = pattern.split(/[\\/]+/);
+  let firstMagic = segments.findIndex((segment) => magic.test(segment));
+
+  if (firstMagic === -1) {
+    yield pattern;
+    return;
+  }
+
+  // A leading separator (absolute POSIX path) must survive the join.
+  const root = segments.slice(0, firstMagic).join('/') || (pattern.startsWith('/') ? '/' : '.');
+  const tail = segments.slice(firstMagic).join('/');
+  const regex = globToRegExp(tail);
+
+  for await (const file of walkAll(root)) {
+    const relative = path.relative(root, file).split(path.sep).join('/');
+
+    if (regex.test(relative) && file.endsWith('.css')) {
+      yield file;
+    }
+  }
+}
+
+function globToRegExp(pattern) {
+  let source = '';
+
+  for (let i = 0; i < pattern.length; i += 1) {
+    const char = pattern[i];
+
+    if (char === '*') {
+      // `**/` spans any number of directories, `*` stays inside one segment.
+      if (pattern[i + 1] === '*') {
+        i += 1;
+        if (pattern[i + 1] === '/') {
+          i += 1;
+          source += '(?:[^/]+/)*';
+        } else {
+          source += '.*';
+        }
+      } else {
+        source += '[^/]*';
+      }
+      continue;
+    }
+
+    if (char === '?') {
+      source += '[^/]';
+      continue;
+    }
+
+    source += char.replace(/[.+^${}()|[\]\\]/, '\\$&');
+  }
+
+  return new RegExp(`^${source}$`);
+}
+
+/** Every file under `root`, skipping dependency and build directories. */
+async function* walkAll(root) {
   const SKIP = new Set(['node_modules', '.git', 'dist', 'build', 'coverage']);
 
   let entries;
@@ -210,15 +290,11 @@ async function* walkCss(root) {
       if (SKIP.has(entry.name)) {
         continue;
       }
-      yield* walkCss(full);
-    } else if (entry.isFile() && entry.name.endsWith('.css')) {
+      yield* walkAll(full);
+    } else if (entry.isFile()) {
       yield full;
     }
   }
-}
-
-function looksLikeGlob(pattern) {
-  return /[*?[]/.test(pattern);
 }
 
 function readStdin() {
