@@ -205,6 +205,14 @@ still reproduces, so the workaround cannot silently rot.
 | Zero false positives on real CSS | 36 third-party stylesheets (docsify, playwright-core, VS Code webview), 7,693 custom properties, 1,392 references | 0 false positives found by manual review |
 | Parser workaround is effective | `npm run bench`, medians of 5×2000 parses | 642x → 1.7–2.5x of baseline |
 | Upstream defects are real | `npm run repro` | both reproduce |
+| Runs on the declared runtime floor | GitHub Actions: ubuntu/windows/macos × Node 18, 20, 22, plus README smoke tests on 18 and 22 and a dependency audit | 12/12 jobs green |
+
+The last row is not decoration. The first push passed on Node 22 and failed on 18 and
+20: the CLI used `fs.promises.glob` (Node 22+) and `npm test` passed a quoted glob to
+`node --test` (glob expansion arrived in Node 21/22), while `package.json` declares
+`engines >= 18.17`. Both are fixed, and `test/package.test.mjs` now fails if a
+Node-22-only API is reintroduced. Verified range: **Node 18.17 – 22**, on the three
+CI operating systems. Other runtimes are untested rather than unsupported.
 
 The 36-file run reports 36 errors and 59 warnings; every error was traced to its
 source and is a **true positive**, not an analyzer bug:
