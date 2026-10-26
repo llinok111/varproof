@@ -210,7 +210,7 @@ it must not break a green build when upstream fixes them.
 |---|---|---|
 | Rules match a real engine | 24 declarations measured in Edge 156.0.4314.42 (`npm run oracle`), replayed offline by `test/oracle.test.mjs` | **24/24 agree** |
 | No regression | `npm test` on a clean copy with only the declared dependency installed | **156 pass, 0 fail** |
-| Runs on the declared engine floor | GitHub Actions matrix: ubuntu/windows/macos x Node 18, 20, 22 | see §Phase 5 note |
+| Runs on the declared engine floor | GitHub Actions matrix: ubuntu/windows/macos × Node 18, 20, 22, plus README smoke tests on 18 and 22 and a dependency audit | **12/12 jobs green** ([run 40287805203](https://github.com/llinok111/varproof/actions/runs/40287805203)) |
 | Starts independently | copy of `bin/ lib/ test/ scripts/ package.json` into an empty dir → `npm install` (3 packages) → `npm test` → CLI run | works |
 | Packages and runs as published | `npm pack` → install the tarball in an empty project → `npx varproof t.css` | exit 1, correct finding; tarball 23.8 kB, 14 files |
 | No false positives on real CSS | 36 third-party stylesheets (docsify, playwright-core, VS Code webview), 7,693 custom properties, 1,392 references | 36 errors / 59 warnings, **every one traced and confirmed a true positive** |
@@ -235,6 +235,13 @@ error, which produced 58 errors on docsify's core theme where `--link-color: ;` 
 deliberate "let it inherit" switch. It is now a warning whose message names both
 possible intents. This is a real judgement call, made on the evidence that the
 construct is intentional in a widely used project, and it is recorded in README §6.
+
+**The CI matrix found two bugs that local verification could not.** The first push
+went green on Windows/Node 22 but failed on Node 18 and 20 — a package that declares
+`engines >= 18.17` was using `fs.promises.glob` (Node 22 only) and a quoted glob for
+`node --test` (glob expansion arrived in Node 21/22). Both are fixed, and
+`test/package.test.mjs` now fails if a Node-22-only API is reintroduced. The final run
+is 12/12 green across three operating systems and three Node versions.
 
 **Unfinished / not done, stated plainly:**
 
@@ -263,18 +270,20 @@ construct is intentional in a widely used project, and it is recorded in README 
 |---|---|
 | Library | `lib/*.mjs` (9 modules) |
 | CLI entry | `bin/varproof.mjs` |
-| Tests | `test/*.test.mjs` (8 files) + `test/fixtures/` |
+| Tests | `test/*.test.mjs` (10 files) + `test/fixtures/` |
 | Browser ground truth | `test/fixtures/browser-oracle.json` + `scripts/browser-oracle.mjs` |
 | Benchmarks and defect reproductions | `scripts/bench-parser.mjs`, `scripts/repro-upstream.mjs` |
 | Documentation | `README.md` (rules, semantics table, limitations), `REPORT.md` |
 | Licence and attribution | `LICENSE` (MIT), `NOTICE.md` (css-tree MIT text, upstream issue table) |
-| CI | `.github/workflows/ci.yml` (3 OS × 3 Node versions + README smoke test) |
+| CI | `.github/workflows/ci.yml` (3 OS × 3 Node versions, README smoke + audit jobs) |
 | Archive | `varproof-0.1.0.zip` |
+| Repository | **https://github.com/llinok111/varproof** — public, branch `main`, three commits |
 
-**Not published to GitHub at report time** — publication was attempted only after
-all verification above passed; see the session record for the final state of the
-push and the repository URL. If the push did not happen, the ZIP plus the steps in
-README §3 are the complete deliverable.
+**Published to GitHub.** The repository was created and pushed after all verification
+above passed, using an SSH remote on port 443 (plain `github.com:443` times out from
+this network). CI is green on the published commit. Nothing was pushed that had not
+first passed the local suite, and the ZIP was assembled from the same tree that was
+committed.
 
 ### Deltas vs. the original project
 
