@@ -1,0 +1,223 @@
+{
+  "measuredWith": "Edge 156.0.4314.42",
+  "generatedAt": "2026-10-26T07:34:38.762Z",
+  "note": "invalid === true means the declaration was dropped at computed-value time",
+  "cases": [
+    {
+      "id": "undefined-no-fallback",
+      "property": "width",
+      "defs": "",
+      "decl": "width: var(--nope);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "undefined-valid-fallback",
+      "property": "width",
+      "defs": "",
+      "decl": "width: var(--nope, 42px);",
+      "probe": "42px",
+      "control": "1264px",
+      "invalid": false
+    },
+    {
+      "id": "undefined-invalid-fallback",
+      "property": "width",
+      "defs": "",
+      "decl": "width: var(--nope, red);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "empty-no-fallback",
+      "property": "width",
+      "defs": "--e: ;",
+      "decl": "width: var(--e);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "empty-with-fallback",
+      "property": "width",
+      "defs": "--e: ;",
+      "decl": "width: var(--e, 50px);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "empty-comment-only",
+      "property": "width",
+      "defs": "--w: /**/;",
+      "decl": "width: var(--w);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "empty-whitespace-only",
+      "property": "width",
+      "defs": "--w:   ;",
+      "decl": "width: var(--w);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "cycle-hard",
+      "property": "width",
+      "defs": "--p: var(--q); --q: var(--p);",
+      "decl": "width: var(--p);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "cycle-with-usage-fallback",
+      "property": "width",
+      "defs": "--p: var(--q); --q: var(--p);",
+      "decl": "width: var(--p, 50px);",
+      "probe": "50px",
+      "control": "1264px",
+      "invalid": false
+    },
+    {
+      "id": "self-cycle-with-fallback",
+      "property": "width",
+      "defs": "--s: var(--s, 10px);",
+      "decl": "width: var(--s);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "fallback-self-cycle",
+      "property": "width",
+      "defs": "--f: var(--nope, var(--f));",
+      "decl": "width: var(--f);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "defined-wrong-type",
+      "property": "width",
+      "defs": "--bad: red;",
+      "decl": "width: var(--bad);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "defined-wrong-type-with-fallback",
+      "property": "width",
+      "defs": "--bad: red;",
+      "decl": "width: var(--bad, 50px);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "defined-right-type",
+      "property": "width",
+      "defs": "--ok: 10px;",
+      "decl": "width: var(--ok);",
+      "probe": "10px",
+      "control": "1264px",
+      "invalid": false
+    },
+    {
+      "id": "defined-two-tokens",
+      "property": "width",
+      "defs": "--two: 12px 13px;",
+      "decl": "width: var(--two);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "chain-ok",
+      "property": "width",
+      "defs": "--x: 5px; --y: var(--x);",
+      "decl": "width: var(--y);",
+      "probe": "5px",
+      "control": "1264px",
+      "invalid": false
+    },
+    {
+      "id": "chain-broken",
+      "property": "width",
+      "defs": "--x: var(--gone); --y: var(--x);",
+      "decl": "width: var(--y);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "chain-broken-with-fallback",
+      "property": "width",
+      "defs": "--x: var(--gone); --y: var(--x, 33px);",
+      "decl": "width: var(--y);",
+      "probe": "33px",
+      "control": "1264px",
+      "invalid": false
+    },
+    {
+      "id": "important-definition",
+      "property": "width",
+      "defs": "--i: 70px !important;",
+      "decl": "width: var(--i);",
+      "probe": "70px",
+      "control": "1264px",
+      "invalid": false
+    },
+    {
+      "id": "color-ok",
+      "property": "color",
+      "defs": "--c: red;",
+      "decl": "color: var(--c);",
+      "probe": "rgb(255, 0, 0)",
+      "control": "rgb(0, 0, 0)",
+      "invalid": false
+    },
+    {
+      "id": "color-wrong-type",
+      "property": "color",
+      "defs": "--n: 10px;",
+      "decl": "color: var(--n);",
+      "probe": "rgb(0, 0, 0)",
+      "control": "rgb(0, 0, 0)",
+      "invalid": true
+    },
+    {
+      "id": "keyword-var-uppercase",
+      "property": "width",
+      "defs": "--u: 9px;",
+      "decl": "width: VAR(--u);",
+      "probe": "9px",
+      "control": "1264px",
+      "invalid": false
+    },
+    {
+      "id": "empty-in-chain",
+      "property": "width",
+      "defs": "--e: ; --f: var(--e, 9px);",
+      "decl": "width: var(--f);",
+      "probe": "1264px",
+      "control": "1264px",
+      "invalid": true
+    },
+    {
+      "id": "padding-multi",
+      "property": "padding-top",
+      "defs": "--pad: 1px 2px;",
+      "decl": "padding: var(--pad);",
+      "probe": "1px",
+      "control": "0px",
+      "invalid": false
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+# Normalise everything to LF so the repository, CI and Windows checkouts agree.
+# Without this, Git converts text files to CRLF on checkout under core.autocrlf=true
+# and every Windows edit shows up as a whole-file diff.
+* text=auto eol=lf
+
+# Binary artefacts must never be line-ending converted.
+*.png binary
+*.jpg binary
+*.zip binary
+*.tgz binary
+*.woff2 binary

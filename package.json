@@ -1,0 +1,43 @@
+{
+  "name": "varproof",
+  "version": "0.1.0",
+  "description": "Static analyzer for CSS custom properties: resolves var() chains, flags undefined, empty, cyclic and type-invalid substitutions that css-tree and stylelint skip.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "bin": {
+    "varproof": "./bin/varproof.mjs"
+  },
+  "exports": {
+    ".": "./lib/index.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "LICENSE",
+    "NOTICE.md",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "bench": "node scripts/bench-parser.mjs",
+    "repro": "node scripts/repro-upstream.mjs",
+    "oracle": "node scripts/browser-oracle.mjs",
+    "check": "node bin/varproof.mjs test/fixtures/clean.css"
+  },
+  "keywords": [
+    "css",
+    "custom-properties",
+    "css-variables",
+    "var",
+    "linter",
+    "static-analysis",
+    "cascade",
+    "csstree"
+  ],
+  "dependencies": {
+    "css-tree": "^3.2.1"
+  }
+}

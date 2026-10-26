@@ -1,0 +1,64 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [18, 20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Test
+        run: npm test
+
+      # The upstream-defect reproductions are advisory on purpose: they assert the
+      # *presence* of css-tree bugs, so they must not break a green build when
+      # upstream fixes them. The parser tests already cover our own behaviour.
+      - name: Upstream defect canary (advisory)
+        continue-on-error: true
+        run: npm run repro
+
+  lint-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      # Every documented CLI form must actually work.
+      - name: README command smoke test
+        run: |
+          set -e
+          node bin/varproof.mjs test/fixtures/clean.css
+          node bin/varproof.mjs test/fixtures/broken.css || test $? -eq 1
+          node bin/varproof.mjs "test/fixtures/*.css" --format json > /dev/null || test $? -eq 1
+          echo '.a{width:var(--x)}' | node bin/varproof.mjs - || test $? -eq 1
+          node bin/varproof.mjs --list-rules > /dev/null
+          node bin/varproof.mjs --check-unused test/fixtures/clean.css > /dev/null
+          node bin/varproof.mjs --allow-undefined test/fixtures/broken.css > /dev/null || test $? -eq 1
+          node bin/varproof.mjs --ignore '--brand' test/fixtures/clean.css > /dev/null
+          node bin/varproof.mjs --quiet test/fixtures/clean.css > /dev/null
+          node bin/varproof.mjs nope.css 2>/dev/null && exit 1 || test $? -eq 2
+          node bin/varproof.mjs --bogus 2>/dev/null && exit 1 || test $? -eq 2
+          echo "all documented forms work"

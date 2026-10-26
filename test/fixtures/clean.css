@@ -1,0 +1,11 @@
+:root {
+  --brand: #ff00ff;
+  --gap: 8px;
+  --stack: 4px;
+}
+
+.card {
+  color: var(--brand);
+  padding: var(--gap);
+  margin: var(--stack, 1px);
+}

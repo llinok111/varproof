@@ -1,0 +1,20 @@
+:root {
+  --brand: #ff00ff;
+  --size: 10px;
+  --empty: ;
+  --a: var(--b);
+  --b: var(--a);
+  --wrong-type: red;
+}
+
+.card {
+  color: var(--brand);
+  padding: var(--size, 4px);
+  width: var(--size);
+  margin: var(--missing);
+  border: var(--brand) solid 1px;
+  height: var(--wrong-type);
+  outline-width: var(--empty);
+  font-size: var(--empty, 12px);
+  gap: var(--a);
+}
